@@ -53,4 +53,3 @@
      (symbol? (second fb))
      ((list-of symbol?) (third fb))
      (ast? (fourth fb)))))
-                

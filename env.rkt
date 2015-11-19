@@ -1,6 +1,7 @@
 #lang racket
 
 (require eopl)
+(require compatibility/mlist)
 (require "ast.rkt")
 (provide (all-defined-out))
 
@@ -42,25 +43,42 @@
 (define denotable->expressible (lambda(x) x))
 (define expressible->denotable (lambda(x) x))
 
-;;; Closures defination
-
+;;; Closure defination
 (define closure
   (lambda (formals body en)
     (if ((list-of symbol?) formals)
         (if (ast? body)
             (if (env? en)
-                (list 'closure formals body en)
+                (mlist en formals body 'closure)
                 (error 'closure "contract violation: invalid enviromment"))
             (error 'closure "contract violation: invalid ast"))
         (error 'closure "contract violation: invalid list of formals"))))
 
+
+(define :m-nth
+  (lambda (n)
+    (lambda (ml)
+      (mlist-ref ml n))))
+
+(define mfirst  (:m-nth 0))
+(define msecond (:m-nth 1))
+(define mthird  (:m-nth 2))
+(define mfourth (:m-nth 3))
+
 (define closure?
   (lambda (c)
-    (and (= (length c) 4)
-         (eq? (first c) 'closure)
-         ((list-of symbol?) (second c))
-         (ast? (third c))
-         (env? (fourth c)))))
+    (and (mlist? c)
+         (= (mlength c) 4)
+         (eq? (mfourth c) 'closure)
+         ((list-of symbol?) (msecond c))
+         (ast? (mthird c))
+         (env? (mfirst c)))))
+
+(define update-env-in-closure
+  (lambda (c en)
+    (set-mcar! c en)))
+
+;;; Closure defination ends
 
 (define list-index
   (lambda (l v)
@@ -76,6 +94,6 @@
 
 (define global-env
   (extended-env
-        '(+ - * / = < <= > >= not !=)
-    (list + - * / = < <= > >= not (lambda (a b)(not (= a b))))
+        '(+ - * / = < <= > >= not eq? !=)
+    (list + - * / = < <= > >= not eq? (lambda (a b)(not (= a b))))
     (empty-env)))

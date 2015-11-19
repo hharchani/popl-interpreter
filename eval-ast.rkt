@@ -30,8 +30,9 @@
       [letrecf (fbinds body)
                (let*
                    ([list-of-dummy-env (map (lambda _ (empty-env)) fbinds)]
-                    [list-of-closures (map (lambda (fb en) (closure (second fb) (third fb) en) fbinds list-of-dummy-env))]
-                    [new-env (extended-env (map first fbinds) list-of-closures e)])
+                    [list-of-closures (map (lambda (fb en) (closure (third fb) (fourth fb) en)) fbinds list-of-dummy-env)]
+                    [new-env (extended-env (map second fbinds) list-of-closures e)]
+                    [d (for-each (:update-env-in-closure new-env) list-of-closures)])
                  (eval-ast body new-env))]
       [fn (formals body) (closure formals body e)]
       [@ (expr params)
@@ -43,12 +44,17 @@
                   (let*
                       ([c fn-to-call]
                        [values (map (curry-eval-ast e) params)]
-                       [list-of-formals (second c)]
-                       [env-sitting-in-closure (fourth c)]
+                       [list-of-formals (msecond c)]
+                       [env-sitting-in-closure (mfirst c)]
                        [new-env (extended-env list-of-formals values env-sitting-in-closure)]
-                       [body (third c)])
+                       [body (mthird c)])
                     (eval-ast body new-env))])
                (error '@ "not a procedure;")))])))
+
+(define :update-env-in-closure
+  (lambda (en)
+    (lambda (c)
+      (update-env-in-closure c en))))
 
 (define curry-eval-ast
   (lambda (e)
