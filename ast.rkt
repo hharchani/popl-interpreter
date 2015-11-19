@@ -1,5 +1,4 @@
 #lang racket
-
 (require eopl)
 (provide (all-defined-out))
 
@@ -19,6 +18,8 @@
   [@ (expr ast?)
      (params (list-of ast?))])
 
+;;; Bind declarations for let
+
 (define bind
   (lambda (x a)
     (if (symbol? x)
@@ -29,11 +30,13 @@
 
 (define bind?
   (lambda (b)
-    (and
-      (= (length b) 3)
-      (eq? (first b) 'bind)
-      (symbol? (second b))
-      (ast? (third b)))))
+    (and (list? b)
+         (= (length b) 3)
+         (eq? (first b) 'bind)
+         (symbol? (second b))
+         (ast? (third b)))))
+
+;;; Function Bind declarations for letrecf
 
 (define fbind
   (lambda (name list-of-formals body)
@@ -47,9 +50,9 @@
 
 (define fbind?
   (lambda (fb)
-    (and
-     (= (length fb) 4)
-     (eq? (first fb) 'fbind)
-     (symbol? (second fb))
-     ((list-of symbol?) (third fb))
-     (ast? (fourth fb)))))
+    (and (list? fb)
+         (= (length fb) 4)
+         (eq? (first fb) 'fbind)
+         (symbol? (second fb))
+         ((list-of symbol?) (third fb))
+         (ast? (fourth fb)))))
