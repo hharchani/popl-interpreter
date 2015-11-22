@@ -63,14 +63,6 @@
       (number? v)
       (boolean? v)
       (proc? v)
-      (ref? v))))
-
-(define denotable? expressible?)
+      (void? v))))
 (define storable? expressible?)
-
-(define denotable->expressible (lambda(x) x))
-(define expressible->denotable (lambda(x) x))
-
-(define expressible->storable (lambda (x) x))
-(define storable->expressible (lambda (x) x))
-
+(define denotable? ref?)

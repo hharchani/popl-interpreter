@@ -27,7 +27,7 @@
             (hash-ref s (second ref))
             (error 'getref "Location doesn't exists"))
         (error 'getref "Invalid memory location"))))
-        
+
 (define set-ref
   (lambda (ref value s)
     (if (ref? ref)

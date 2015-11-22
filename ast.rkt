@@ -17,9 +17,7 @@
       (expr ast?)]
   [@ (expr ast?)
      (params (list-of ast?))]
-  [newref (value ast?)]
-  [setref (ref ast?) (value ast?)]
-  [getref (ref ast?)]
+  [assign (x symbol?) (val ast?)]
   [seq (statements (list-of ast?))])
 
 ;;; Bind declarations for let

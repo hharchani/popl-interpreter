@@ -25,8 +25,6 @@
                                  (parse body))]
       [`(fn ,formals ,body) (fn formals (parse body))]
       [`(@ ,func . ,params) (@ (parse func) (map parse params))]
-      [`(newref ,value) (newref (parse value))]
-      [`(setref ,ref ,value) (setref (parse ref) (parse value))]
-      [`(getref ,ref) (getref (parse ref))]
+      [`(assign ,id ,value) (assign id (parse value))]
       [`(seq . ,statements) (seq (map parse statements))]
       [`(,proc . ,args) (@ (parse proc) (map parse args))])))
