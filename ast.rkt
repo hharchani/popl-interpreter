@@ -16,7 +16,11 @@
   [fn (formals (list-of symbol?))
       (expr ast?)]
   [@ (expr ast?)
-     (params (list-of ast?))])
+     (params (list-of ast?))]
+  [newref (value ast?)]
+  [setref (ref ast?) (value ast?)]
+  [getref (ref ast?)]
+  [seq (statements (list-of ast?))])
 
 ;;; Bind declarations for let
 

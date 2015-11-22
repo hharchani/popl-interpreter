@@ -2,9 +2,11 @@
 (require eopl)
 (require compatibility/mlist)
 (require "ast.rkt")
+(require "store.rkt")
 (require "utilities.rkt")
 (provide (all-defined-out))
 
+;;; Environment
 (define-datatype env env?
   [empty-env]
   [extended-env
@@ -15,7 +17,7 @@
 (define lookup-env
   (lambda (e x)
     (cases env e
-      [empty-env () (error 'lookup-env (format "unbound id ~a" x))]
+      [empty-env () (error 'undefined (format "unbound variable ~a" x))]
       [extended-env (syms vals outer-env)
         (let ([j (list-index syms x)])
           (if (= j -1)
@@ -60,9 +62,15 @@
     (or
       (number? v)
       (boolean? v)
-      (proc? v))))
+      (proc? v)
+      (ref? v))))
 
 (define denotable? expressible?)
+(define storable? expressible?)
 
 (define denotable->expressible (lambda(x) x))
 (define expressible->denotable (lambda(x) x))
+
+(define expressible->storable (lambda (x) x))
+(define storable->expressible (lambda (x) x))
+

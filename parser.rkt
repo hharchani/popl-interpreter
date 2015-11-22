@@ -24,4 +24,9 @@
                                   fbinds)
                                  (parse body))]
       [`(fn ,formals ,body) (fn formals (parse body))]
+      [`(@ ,func . ,params) (@ (parse func) (map parse params))]
+      [`(newref ,value) (newref (parse value))]
+      [`(setref ,ref ,value) (setref (parse ref) (parse value))]
+      [`(getref ,ref) (getref (parse ref))]
+      [`(seq . ,statements) (seq (map parse statements))]
       [`(,proc . ,args) (@ (parse proc) (map parse args))])))
