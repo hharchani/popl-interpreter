@@ -4,27 +4,21 @@
 (require "ast.rkt")
 (provide (all-defined-out))
 
-(define parse
+(define parser
   (lambda (exp)
     (match exp
       [(? number?)  (number exp)]
       [(? boolean?) (boolean exp)]
       [(? symbol?)  (id-ref exp)]
-      [`(ifte ,e ,e1 ,e2) (ifte (parse e) (parse e1) (parse e2))]
+      [`(ifte ,e ,e1 ,e2) (ifte (parser e) (parser e1) (parser e2))]
       [`(let ,binds ,body) (assume
                             (map
                              (lambda (li)
-                               (bind (first li) (parse (second li))))
+                               (bind (first li) (parser (second li))))
                              binds)
-                            (parse body))]
-      [`(letrecf ,fbinds ,body) (letrecf
-                                 (map
-                                  (lambda (fb)
-                                    (fbind (first fb) (second fb) (parse (third fb))))
-                                  fbinds)
-                                 (parse body))]
-      [`(fn ,formals ,body) (fn formals (parse body))]
-      [`(@ ,func . ,params) (@ (parse func) (map parse params))]
-      [`(assign ,id ,value) (assign id (parse value))]
-      [`(seq . ,statements) (seq (map parse statements))]
-      [`(,proc . ,args) (@ (parse proc) (map parse args))])))
+                            (parser body))]
+      [`(fn ,formals ,body) (fn formals (parser body))]
+      [`(@ ,func . ,params) (@ (parser func) (map parser params))]
+      [`(assign ,id ,value) (assign id (parser value))]
+      [`(seq . ,statements) (seq (map parser statements))]
+      [`(,proc . ,args) (@ (parser proc) (map parser args))])))

@@ -24,3 +24,12 @@
 (define msecond (:m-nth 1))
 (define mthird  (:m-nth 2))
 (define mfourth (:m-nth 3))
+
+(define map/k
+  (lambda (f/k ls k)
+    (if (null? ls)
+        (k '())
+        (f/k (first ls) (lambda (v)
+                          (map/k f/k (rest ls)
+                                      (lambda (u)
+                                        (k (cons v u)))))))))

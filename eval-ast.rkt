@@ -7,27 +7,29 @@
 (require "utilities.rkt")
 (provide (all-defined-out))
 
-(define eval-ast
-  (lambda (a e s)
+(define eval-ast/k
+  (lambda (a e s k)
     (cases ast a
-      [number (n) n]
-      [boolean (b) b]
+      [number (n) (k n)]
+      [boolean (b) (k b)]
       [id-ref (x) (let ([l (lookup-env e x)])
-                    (get-ref l s))]
+                    (k (get-ref l s)))]
       [ifte (test true false)
-              (let ([b (eval-ast test e s)])
-                (if b
-                    (eval-ast true  e s)
-                    (eval-ast false e s)))]
+            (eval-ast/k test e s
+                        (lambda (ans-test)
+                          (if ans-test
+                              (eval-ast/k true e s (lambda (ans) (k ans)))
+                              (eval-ast/k false e s (lambda (ans) (k ans))))))]
       [assume (binds body)
               (let*
                   ([symbols (map second binds)]
-                   
-                   [expressions (map third binds)]
-                   [values-of-expressions (map (:eval-ast e s) expressions)]
-                   [locations (map (curryr make-new-ref s) values-of-expressions)]
-                   [new-env (extended-env symbols locations e)])
-                (eval-ast body new-env s))]
+                   [expressions (map third binds)])
+                (map/k (:eval-ast/k e s) expressions
+                       (lambda (values-of-expressions)
+                         (map/k (:make-new-ref/k s) values-of-expressions
+                                (lambda (locations)
+                                  (let ([new-env (extended-env symbols locations e)])
+                                    (eval-ast/k body new-env s (lambda (v) (k v)))))))))]
       [letrecf (fbinds body)
                (let* ([list-of-empty-env (map (lambda (x) (empty-env)) fbinds)]
                       [list-of-closures (map (lambda (fb en) (closure (third fb) (fourth fb) en)) fbinds list-of-empty-env)]
@@ -55,4 +57,12 @@
       [assign (x value) (let ([l (lookup-env e x)][v (eval-ast value e s)]) (set-ref l v s) (void))]
       [seq (statements) (let ([list-of-ans (map (:eval-ast e s) statements)]) (last list-of-ans))])))
 
-(define :eval-ast (curryr eval-ast))
+(define :eval-ast/k
+  (lambda (e s)
+    (lambda (a k)
+      (eval-ast/k a e s (lambda (v) (k v))))))
+
+(define :make-new-ref/k
+  (lambda (s)
+    (lambda (value k)
+      (make-new-ref/k value s k))))

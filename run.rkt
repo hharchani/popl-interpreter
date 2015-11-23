@@ -18,8 +18,15 @@
      (map (curryr make-new-ref s) (list + - * / = < <= > >= not eq? (lambda (a b)(not (= a b)))))
      (empty-env))))
 
+(define run/k
+  (lambda (expr k)
+    (let* ([gs (global-store)]
+           [ge (global-env gs)]
+           [parsed-expr (parser expr)])
+      (eval-ast/k parsed-expr  ge gs (lambda (v) (k v))))))
+
+(define top-k (lambda (x) x))
+
 (define run
   (lambda (expr)
-    (let* ([gs (global-store)]
-           [ge (global-env gs)])
-      (eval-ast (parse expr) ge gs))))
+    (run/k expr top-k)))

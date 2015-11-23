@@ -14,11 +14,11 @@
          (eq? (first r) 'store-ref)
          (number? (second r)))))
 
-(define make-new-ref
-  (lambda (value s)
+(define make-new-ref/k
+  (lambda (value s k)
     (let ([len (hash-count s)])
       (hash-set! s (+ len 1) value)
-      (list 'store-ref (+ len 1)))))
+      (k (list 'store-ref (+ len 1))))))
 
 (define get-ref
   (lambda (ref s)
