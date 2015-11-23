@@ -3,66 +3,67 @@
 (require "ast.rkt")
 (require "env.rkt")
 (require "parser.rkt")
-(require "store.rkt")
 (require "utilities.rkt")
+(require "top.rkt")
 (provide (all-defined-out))
 
 (define eval-ast/k
-  (lambda (a e s k)
+  (lambda (a e k)
     (cases ast a
-      [number (n) (k n)]
-      [boolean (b) (k b)]
-      [id-ref (x) (let ([l (lookup-env e x)])
-                    (k (get-ref l s)))]
+      [number (n) (apply-k k n)]
+      [boolean (b) (apply-k k b)]
+      [id-ref (x) (lookup-env/k e x (lambda (v) (apply-k k v)))]
       [ifte (test true false)
-            (eval-ast/k test e s
+            (eval-ast/k test e
                         (lambda (ans-test)
                           (if ans-test
-                              (eval-ast/k true e s (lambda (ans) (k ans)))
-                              (eval-ast/k false e s (lambda (ans) (k ans))))))]
+                              (eval-ast/k true e (lambda (ans) (apply-k k ans)))
+                              (eval-ast/k false e (lambda (ans) (apply-k k ans))))))]
       [assume (binds body)
               (let*
                   ([symbols (map second binds)]
                    [expressions (map third binds)])
-                (map/k (:eval-ast/k e s) expressions
+                (map/k (:eval-ast/k e) expressions
                        (lambda (values-of-expressions)
-                         (map/k (:make-new-ref/k s) values-of-expressions
-                                (lambda (locations)
-                                  (let ([new-env (extended-env symbols locations e)])
-                                    (eval-ast/k body new-env s (lambda (v) (k v)))))))))]
-      [letrecf (fbinds body)
-               (let* ([list-of-empty-env (map (lambda (x) (empty-env)) fbinds)]
-                      [list-of-closures (map (lambda (fb en) (closure (third fb) (fourth fb) en)) fbinds list-of-empty-env)]
-                      [list-of-locations (map (curryr make-new-ref s) list-of-closures)]
-                      [new-env (extended-env (map second fbinds) list-of-locations e)]
-                      [d (for-each (curryr update-env-in-closure new-env) list-of-closures)])
-                 (eval-ast body new-env s))]
-      [fn (formals body) (closure formals body e)]
+                                  (let ([new-env (extended-env symbols values-of-expressions e)])
+                                    (eval-ast/k body new-env (lambda (v) (apply-k k v)))))))]
+      [fn (formals body) (apply-k k (closure formals body e))]
       [@ (expr params)
-         (let ([fn-to-call (eval-ast expr e s)])
-           (if (proc? fn-to-call)
-               (cond
-                 [(primitive-op? fn-to-call) (apply fn-to-call (map (:eval-ast e s) params))]
-                 [(closure? fn-to-call)
-                  (let*
-                      ([c fn-to-call]
-                       [values (map (:eval-ast e s) params)]
-                       [list-of-formals (msecond c)]
-                       [env-sitting-in-closure (mfirst c)]
-                       [locations (map (curryr make-new-ref s) values)]
-                       [new-env (extended-env list-of-formals locations env-sitting-in-closure)]
-                       [body (mthird c)])
-                    (eval-ast body new-env s))])
-               (error '@ "not a procedure; ~a" expr)))]
-      [assign (x value) (let ([l (lookup-env e x)][v (eval-ast value e s)]) (set-ref l v s) (void))]
-      [seq (statements) (let ([list-of-ans (map (:eval-ast e s) statements)]) (last list-of-ans))])))
+         (eval-ast/k expr e (lambda (fn)
+                              (if (proc? fn)
+                                  (cond
+                                    [(primitive-op? fn)
+                                     (map/k (:eval-ast/k e) params (lambda (args)
+                                                                     (apply-k k (apply fn args))))]
+                                    [(closure? fn)
+                                     (map/k (:eval-ast/k e) params
+                                            (lambda (args)
+                                              (let*
+                                                  ([list-of-formals (msecond fn)]
+                                                   [env-sitting-in-closure (mfirst fn)]
+                                                   [body (mthird fn)]
+                                                   [new-env (extended-env list-of-formals args env-sitting-in-closure)])
+                                                (:eval-ast/k body new-env (lambda (answer) (apply-k k answer))))))])
+                                  (error '@ "not a procedure; ~a" expr))))]
+      [prim-app (expr params)
+                (eval-ast/k expr e
+                            (lambda (fn)
+                              (map/k (:eval-ast/k e) params
+                                     (lambda (args)
+                                       (apply-k k (apply fn args))))))]
+      [app (expr params)
+           (eval-ast/k expr e
+                       (lambda (fn)
+                         (map/k (:eval-ast/k e) params
+                                            (lambda (args)
+                                              (let*
+                                                  ([list-of-formals (msecond fn)]
+                                                   [env-sitting-in-closure (mfirst fn)]
+                                                   [body (mthird fn)]
+                                                   [new-env (extended-env list-of-formals args env-sitting-in-closure)])
+                                                (:eval-ast/k body new-env (lambda (answer) (apply-k k answer))))))))])))
 
 (define :eval-ast/k
-  (lambda (e s)
+  (lambda (e)
     (lambda (a k)
-      (eval-ast/k a e s (lambda (v) (k v))))))
-
-(define :make-new-ref/k
-  (lambda (s)
-    (lambda (value k)
-      (make-new-ref/k value s k))))
+      (eval-ast/k a e (lambda (v) (apply-k k v))))))

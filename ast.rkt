@@ -11,14 +11,11 @@
         (false ast?)]
   [assume (binds (list-of bind?))
           (body ast?)]
-  [letrecf (fbinds (list-of fbind?))
-           (body ast?)]
   [fn (formals (list-of symbol?))
       (expr ast?)]
-  [@ (expr ast?)
-     (params (list-of ast?))]
-  [assign (x symbol?) (val ast?)]
-  [seq (statements (list-of ast?))])
+  [prim-app (expr ast?) (params (list-of ast?))]
+  [app (expr ast?) (params (list-of ast?))]
+  [@ (expr ast?) (params (list-of ast?))])
 
 ;;; Bind declarations for let
 
@@ -37,24 +34,3 @@
          (eq? (first b) 'bind)
          (symbol? (second b))
          (ast? (third b)))))
-
-;;; Function Bind declarations for letrecf
-
-(define fbind
-  (lambda (name list-of-formals body)
-    (if (symbol? name)
-        (if ((list-of symbol?) list-of-formals)
-            (if (ast? body)
-                (list 'fbind name list-of-formals body)
-                (error 'fbind "contract violation: Invalid function body"))
-            (error 'fbind "contract violation: Invalid list of formals"))
-        (error 'fbind "contract violation: Invalid function name"))))
-
-(define fbind?
-  (lambda (fb)
-    (and (list? fb)
-         (= (length fb) 4)
-         (eq? (first fb) 'fbind)
-         (symbol? (second fb))
-         ((list-of symbol?) (third fb))
-         (ast? (fourth fb)))))

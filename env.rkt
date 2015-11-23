@@ -2,8 +2,8 @@
 (require eopl)
 (require compatibility/mlist)
 (require "ast.rkt")
-(require "store.rkt")
 (require "utilities.rkt")
+(require "top.rkt")
 (provide (all-defined-out))
 
 ;;; Environment
@@ -14,15 +14,15 @@
    (values  (list-of denotable?))
    (outer-env env?)])
 
-(define lookup-env
-  (lambda (e x)
+(define lookup-env/k
+  (lambda (e x k)
     (cases env e
       [empty-env () (error 'undefined (format "unbound variable ~a" x))]
       [extended-env (syms vals outer-env)
         (let ([j (list-index syms x)])
           (if (= j -1)
-              (lookup-env outer-env x)
-              (list-ref vals j)))])))
+              (lookup-env/k outer-env x (lambda (v) (apply-k k v)))
+              (apply-k k (list-ref vals j))))])))
 
 ;;; Closures
 (define closure
@@ -44,12 +44,7 @@
          (ast? (mthird c))
          (env? (mfirst c)))))
 
-(define update-env-in-closure
-  (lambda (c en)
-    (set-mcar! c en)))
-
 ;;; Value types
-
 (define primitive-op? procedure?)
 
 (define proc?
@@ -64,5 +59,5 @@
       (boolean? v)
       (proc? v)
       (void? v))))
-(define storable? expressible?)
-(define denotable? ref?)
+
+(define denotable? expressible?)
